@@ -1,0 +1,13 @@
+{
+  "name": "Solar EPC Project Management",
+  "short_name": "Solar EPC",
+  "description": "Real-time monitoring for running solar EPC projects",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0E13",
+  "theme_color": "#0A0E13",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
