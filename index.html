@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0A0E13">
+<title>Solar EPC Project Management</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E13; --panel:#121822; --panel-alt:#1A2332; --border:#263140;
+    --copper:#E8A33D; --teal:#3DDC97; --red:#FF5C5C; --blue:#5B9DFF;
+    --text:#EDF2F7; --muted:#8291A3; --muted2:#5A6B7D;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:70px;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  input,select,textarea{font-family:'IBM Plex Mono',monospace;}
+  ::placeholder{color:var(--muted2);opacity:.7;}
+
+  /* ---------- login ---------- */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px 24px;}
+  .login-box h1{font-size:19px;margin:0 0 4px;}
+  .login-box .sub{color:var(--muted);font-size:13px;margin-bottom:22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%;background:#0D131A;border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:8px;font-size:14px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--copper);}
+  .btn{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;border:none;border-radius:8px;padding:12px 18px;cursor:pointer;width:100%;transition:opacity .15s, transform .1s;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--copper);color:#1A1300;}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .btn-ghost:hover{color:var(--text);}
+  .btn-danger{background:rgba(255,92,92,.12);color:var(--red);border:1px solid rgba(255,92,92,.3);}
+  .btn-sm{padding:8px 14px;font-size:13px;width:auto;}
+  .err-msg{color:var(--red);font-size:13px;margin-top:10px;}
+  .hint{font-size:11.5px;color:var(--muted2);margin-top:14px;line-height:1.5;}
+
+  /* ---------- app shell ---------- */
+  #app{display:none;}
+  header{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
+  header .brand{font-weight:700;font-size:16px;}
+  header .who{font-size:11px;color:var(--muted2);}
+  .role-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;background:var(--panel-alt);color:var(--copper);border:1px solid var(--border);margin-left:6px;}
+  header button.logout{background:none;border:none;color:var(--muted2);font-size:20px;cursor:pointer;padding:4px 8px;}
+
+  main{padding:16px;max-width:900px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* bottom nav for mobile-first feel */
+  nav.bottomnav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);display:flex;z-index:20;}
+  nav.bottomnav button{flex:1;background:none;border:none;color:var(--muted2);padding:11px 4px 9px;font-family:'Space Grotesk',sans-serif;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  nav.bottomnav button .ic{font-size:18px;}
+  nav.bottomnav button.active{color:var(--copper);}
+
+  .section-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:4px 0 12px;display:flex;justify-content:space-between;align-items:center;}
+
+  /* project cards */
+  .proj-grid{display:grid;gap:12px;}
+  .proj-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;}
+  .proj-card:active{border-color:var(--copper);}
+  .proj-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .proj-name{font-weight:600;font-size:15px;}
+  .proj-client{font-size:12px;color:var(--muted);margin-top:2px;}
+  .status-chip{font-size:10.5px;padding:3px 9px;border-radius:12px;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .status-Planning{background:rgba(91,157,255,.12);color:var(--blue);}
+  .status-Ongoing{background:rgba(61,220,151,.12);color:var(--teal);}
+  .status-Delayed{background:rgba(255,92,92,.12);color:var(--red);}
+  .status-Completed{background:rgba(232,163,61,.12);color:var(--copper);}
+  .status-OnHold{background:rgba(130,145,163,.15);color:var(--muted);}
+
+  .proj-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .proj-meta .k{color:var(--muted2);}
+  .proj-meta .v{color:var(--text);font-family:'IBM Plex Mono',monospace;}
+
+  .progress-track{height:7px;background:var(--panel-alt);border-radius:5px;overflow:hidden;margin-bottom:6px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--copper),var(--teal));border-radius:5px;}
+  .progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted2);}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--muted2);border:1px dashed var(--border);border-radius:12px;font-size:13px;}
+
+  /* project detail */
+  .detail-header{margin-bottom:16px;}
+  .back-link{color:var(--muted);font-size:13px;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px;cursor:pointer;}
+  .detail-title{font-size:20px;font-weight:700;margin:0 0 4px;}
+  .detail-sub{color:var(--muted);font-size:13px;}
+
+  .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:4px;margin:16px 0;}
+  .tabs button{flex:1;background:none;border:none;color:var(--muted);padding:9px;border-radius:7px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12.5px;cursor:pointer;}
+  .tabs button.active{background:var(--panel-alt);color:var(--text);}
+
+  .readout-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+  .readout{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;}
+  .readout .r-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);margin-bottom:5px;}
+  .readout .r-value{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .card h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+
+  .mat-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);}
+  .mat-row:last-child{border-bottom:none;}
+  .mat-name{font-weight:600;font-size:13.5px;}
+  .mat-sub{font-size:11px;color:var(--muted2);margin-top:2px;}
+  .mat-right{text-align:right;}
+  .mat-remaining{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--teal);}
+  .mat-remaining.low{color:var(--red);}
+  .mat-used{font-size:11px;color:var(--muted2);}
+
+  table.usage-table{width:100%;border-collapse:collapse;font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  table.usage-table th, table.usage-table td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--border);}
+  table.usage-table th{color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.04em;}
+
+  .fab{position:fixed;bottom:80px;right:16px;background:var(--copper);color:#1A1300;border:none;border-radius:50%;width:52px;height:52px;font-size:24px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:15;}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--panel);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;}
+  @media(min-width:600px){.modal-backdrop{align-items:center;} .modal{border-radius:16px;}}
+  .modal h2{margin:0 0 16px;font-size:16px;}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-close{float:right;background:none;border:none;color:var(--muted2);font-size:20px;cursor:pointer;}
+
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--panel-alt);border:1px solid var(--border);padding:10px 18px;border-radius:20px;font-size:13px;z-index:100;display:none;}
+  .toast.show{display:block;}
+  .toast.error{border-color:var(--red);color:var(--red);}
+  .toast.success{border-color:var(--teal);color:var(--teal);}
+
+  .loading{text-align:center;padding:40px;color:var(--muted2);font-size:13px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>Solar EPC Project Management</h1>
+    <div class="sub">Sign in to monitor your projects</div>
+    <div class="field"><label>Username</label><input id="loginUser" autocomplete="username" placeholder="e.g. admin"></div>
+    <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+    <div id="loginErr" class="err-msg"></div>
+    <div class="hint">First time? Default admin login is <b>admin</b> / <b>admin123</b> — sign in and change this from the Team tab.</div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <header>
+    <div>
+      <div class="brand">Solar EPC</div>
+      <div class="who" id="whoLabel"></div>
+    </div>
+    <button class="logout" onclick="doLogout()" title="Log out">⏻</button>
+  </header>
+
+  <main>
+    <!-- ---- Dashboard ---- -->
+    <div class="view active" id="view-dashboard">
+      <div class="section-title">Running Projects</div>
+      <div class="proj-grid" id="projGrid"><div class="loading">Loading projects…</div></div>
+    </div>
+
+    <!-- ---- Project Detail ---- -->
+    <div class="view" id="view-project">
+      <div class="detail-header">
+        <div class="back-link" onclick="goToView('dashboard')">← All projects</div>
+        <div class="detail-title" id="pdTitle">—</div>
+        <div class="detail-sub" id="pdSub">—</div>
+      </div>
+
+      <div class="tabs">
+        <button class="active" data-ptab="overview" onclick="setProjectTab('overview')">Overview</button>
+        <button data-ptab="materials" onclick="setProjectTab('materials')">Materials</button>
+        <button data-ptab="history" onclick="setProjectTab('history')">Usage Log</button>
+      </div>
+
+      <div class="ptab-view active" id="ptab-overview"></div>
+      <div class="ptab-view" id="ptab-materials" style="display:none"></div>
+      <div class="ptab-view" id="ptab-history" style="display:none"></div>
+    </div>
+
+    <!-- ---- Team (admin) ---- -->
+    <div class="view" id="view-team">
+      <div class="section-title">Team<button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Add user</button></div>
+      <div id="teamList"><div class="loading">Loading…</div></div>
+    </div>
+  </main>
+
+  <nav class="bottomnav">
+    <button class="active" data-nav="dashboard" onclick="goToView('dashboard')"><span class="ic">▦</span>Projects</button>
+    <button data-nav="team" id="navTeam" onclick="goToView('team')" style="display:none"><span class="ic">◐</span>Team</button>
+  </nav>
+
+  <button class="fab" id="addProjectFab" onclick="openProjectModal()" style="display:none">+</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ================= MODALS ================= -->
+<div class="modal-backdrop" id="projectModalBackdrop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('projectModalBackdrop')">✕</button>
+    <h2 id="projectModalTitle">New Project</h2>
+    <input type="hidden" id="pm-id">
+    <div class="field"><label>Project Name</label><input id="pm-name"></div>
+    <div class="row2">
+      <div class="field"><label>Client Name</label><input id="pm-client"></div>
+      <div class="field"><label>Capacity (kWp/MWp)</label><input id="pm-capacity" placeholder="e.g. 5 MWp"></div>
+    </div>
+    <div class="field"><label>Location</label><input id="pm-location"></div>
+    <div class="row2">
+      <div class="field"><label>Project Manager</label><select id="pm-pm-select"><option value="">— Not assigned —</option></select></div>
+      <div class="field"><label>Site Engineer</label><select id="pm-eng-select"><option value="">— Not assigned —</option></select></div>
+    </div>
+    <div class="hint" style="margin:-6px 0 14px;">Only people added under the Team tab appear here. You can change who's assigned any time by editing the project again.</div>
+    <div class="row2">
+      <div class="field"><label>Start Date</label><input id="pm-start" type="date"></div>
+      <div class="field"><label>Expected Completion</label><input id="pm-end" type="date"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Number of Engineers</label><input id="pm-engcount" type="number" min="0" value="0"></div>
+      <div class="field"><label>Number of Labour</label><input id="pm-labcount" type="number" min="0" value="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Progress (%)</label><input id="pm-progress" type="number" min="0" max="100" value="0"></div>
+      <div class="field"><label>Status</label>
+        <select id="pm-status">
+          <option>Planning</option><option>Ongoing</option><option>Delayed</option><option>OnHold</option><option>Completed</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('projectModalBackdrop')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="materialModalBackdrop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('materialModalBackdrop')">✕</button>
+    <h2>Add Material</h2>
+    <div class="field"><label>Material Name</label><input id="mm-name" placeholder="e.g. Solar Panel 550W"></div>
+    <div class="row2">
+      <div class="field"><label>Unit</label><input id="mm-unit" placeholder="e.g. pcs, meter, kg"></div>
+      <div class="field"><label>Planned Quantity</label><input id="mm-planned" type="number" min="0" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('materialModalBackdrop')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMaterial()">Add Material</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="usageModalBackdrop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('usageModalBackdrop')">✕</button>
+    <h2 id="usageModalTitle">Record Usage</h2>
+    <div class="row2">
+      <div class="field"><label>Date</label><input id="um-date" type="date"></div>
+      <div class="field"><label>Quantity Used Today</label><input id="um-qty" type="number" min="0" step="any"></div>
+    </div>
+    <div class="field"><label>Remarks (optional)</label><textarea id="um-remarks" rows="2" placeholder="e.g. delayed due to rain"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('usageModalBackdrop')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUsage()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="userModalBackdrop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('userModalBackdrop')">✕</button>
+    <h2>Add Team Member</h2>
+    <div class="field"><label>Full Name</label><input id="um2-fullname"></div>
+    <div class="field"><label>Username (for login)</label><input id="um2-username"></div>
+    <div class="field"><label>Password</label><input id="um2-password" type="password"></div>
+    <div class="field"><label>Role</label>
+      <select id="um2-role">
+        <option value="engineer">Site Engineer</option>
+        <option value="pm">Project Manager</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('userModalBackdrop')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+
+/* ---------------- state ---------------- */
+let TOKEN = localStorage.getItem('epc_token') || null;
+let ME = null;
+let PROJECTS = [];
+let CURRENT_PROJECT = null;
+let CURRENT_MATERIALS = [];
+let ACTIVE_MATERIAL_FOR_USAGE = null;
+
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(ts){ if(!ts) return '—'; const d = new Date(ts); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtDateTime(ts){ if(!ts) return '—'; const d = new Date(ts); return d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function toast(msg, kind){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (kind ? ' '+kind : '');
+  setTimeout(()=>{ t.className='toast'; }, 3200);
+}
+
+async function api(pathname, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if (TOKEN) headers['Authorization'] = 'Bearer '+TOKEN;
+  const res = await fetch(pathname, { ...opts, headers });
+  let data = null;
+  try { data = await res.json(); } catch(e){}
+  if (!res.ok) {
+    if (res.status === 401) { doLogout(true); }
+    throw new Error((data && data.error) || ('Request failed ('+res.status+')'));
+  }
+  return data;
+}
+
+/* ---------------- auth ---------------- */
+async function doLogin(){
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if(!username || !password){ errEl.textContent = 'Enter username and password.'; return; }
+  try{
+    const data = await api('/api/auth/login', { method:'POST', body: JSON.stringify({username, password}) });
+    TOKEN = data.token; ME = data.user;
+    localStorage.setItem('epc_token', TOKEN);
+    enterApp();
+  }catch(e){ errEl.textContent = e.message; }
+}
+
+function doLogout(silent){
+  if(TOKEN && !silent) api('/api/auth/logout', {method:'POST'}).catch(()=>{});
+  TOKEN = null; ME = null;
+  localStorage.removeItem('epc_token');
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginPass').value='';
+}
+
+async function tryResumeSession(){
+  if(!TOKEN) return;
+  try{
+    const data = await api('/api/auth/me');
+    ME = data.user;
+    enterApp();
+  }catch(e){ doLogout(true); }
+}
+
+function enterApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('whoLabel').innerHTML = escapeHtml(ME.full_name) + '<span class="role-badge">'+roleLabel(ME.role)+'</span>';
+  document.getElementById('addProjectFab').style.display = (ME.role==='admin'||ME.role==='pm') ? 'block' : 'none';
+  document.getElementById('navTeam').style.display = (ME.role==='admin') ? 'flex' : 'none';
+  loadProjects();
+}
+
+function roleLabel(r){ return {admin:'Admin', pm:'Project Manager', engineer:'Site Engineer'}[r] || r; }
+
+/* ---------------- nav ---------------- */
+function goToView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav.bottomnav button').forEach(b=>b.classList.remove('active'));
+  const navBtn = document.querySelector('nav.bottomnav button[data-nav="'+name+'"]');
+  if(navBtn) navBtn.classList.add('active');
+  if(name==='dashboard') loadProjects();
+  if(name==='team') loadTeam();
+}
+
+/* ---------------- dashboard ---------------- */
+async function loadProjects(){
+  const grid = document.getElementById('projGrid');
+  try{
+    PROJECTS = await api('/api/projects');
+  }catch(e){ toast(e.message,'error'); return; }
+  if(PROJECTS.length===0){
+    grid.innerHTML = '<div class="empty-state">No projects yet.'+((ME.role==='admin'||ME.role==='pm')?' Tap + to add one.':'')+'</div>';
+    return;
+  }
+  grid.innerHTML = PROJECTS.map(p=>{
+    const statusClass = 'status-'+(p.status||'Planning').replace(/\s/g,'');
+    return `<div class="proj-card" onclick="openProject(${p.id})">
+      <div class="proj-top">
+        <div>
+          <div class="proj-name">${escapeHtml(p.name)}</div>
+          <div class="proj-client">${escapeHtml(p.client_name||'—')}</div>
+        </div>
+        <span class="status-chip ${statusClass}">${escapeHtml(p.status||'Planning')}</span>
+      </div>
+      <div class="proj-meta">
+        <div><span class="k">Capacity </span><span class="v">${escapeHtml(p.capacity||'—')}</span></div>
+        <div><span class="k">Location </span><span class="v">${escapeHtml(p.location||'—')}</span></div>
+        <div><span class="k">PM </span><span class="v">${escapeHtml(p.project_manager||'—')}</span></div>
+        <div><span class="k">Engineer </span><span class="v">${escapeHtml(p.site_engineer||'—')}</span></div>
+        <div><span class="k">Engineers </span><span class="v">${p.engineers_count||0}</span></div>
+        <div><span class="k">Labour </span><span class="v">${p.labour_count||0}</span></div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.max(0,Math.min(100,p.progress_percent||0))}%"></div></div>
+      <div class="progress-label">
+        <span>${(p.progress_percent||0).toFixed(0)}% complete</span>
+        <span>Updated ${fmtDateTime(p.last_site_update)}${p.last_updated_by ? ' by '+escapeHtml(p.last_updated_by) : ''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- project modal (create/edit) ---------------- */
+let TEAM_USERS_CACHE = [];
+
+async function loadTeamUsersForDropdown(){
+  try{
+    TEAM_USERS_CACHE = await api('/api/users');
+  }catch(e){ TEAM_USERS_CACHE = []; }
+}
+
+function fillAssigneeSelect(selectId, roleFilter, selectedUsername){
+  const sel = document.getElementById(selectId);
+  const options = TEAM_USERS_CACHE.filter(u => roleFilter.includes(u.role));
+  sel.innerHTML = '<option value="">— Not assigned —</option>' +
+    options.map(u => `<option value="${escapeHtml(u.username)}" data-fullname="${escapeHtml(u.full_name)}">${escapeHtml(u.full_name)} (@${escapeHtml(u.username)})</option>`).join('');
+  sel.value = selectedUsername || '';
+}
+
+async function openProjectModal(existing){
+  document.getElementById('projectModalTitle').textContent = existing ? 'Edit Project' : 'New Project';
+  document.getElementById('pm-id').value = existing ? existing.id : '';
+  document.getElementById('pm-name').value = existing ? existing.name||'' : '';
+  document.getElementById('pm-client').value = existing ? existing.client_name||'' : '';
+  document.getElementById('pm-capacity').value = existing ? existing.capacity||'' : '';
+  document.getElementById('pm-location').value = existing ? existing.location||'' : '';
+  await loadTeamUsersForDropdown();
+  fillAssigneeSelect('pm-pm-select', ['pm','admin'], existing ? existing.pm_username : '');
+  fillAssigneeSelect('pm-eng-select', ['engineer'], existing ? existing.engineer_username : '');
+  document.getElementById('pm-start').value = existing ? (existing.start_date||'') : '';
+  document.getElementById('pm-end').value = existing ? (existing.expected_completion||'') : '';
+  document.getElementById('pm-engcount').value = existing ? existing.engineers_count||0 : 0;
+  document.getElementById('pm-labcount').value = existing ? existing.labour_count||0 : 0;
+  document.getElementById('pm-progress').value = existing ? existing.progress_percent||0 : 0;
+  document.getElementById('pm-status').value = existing ? existing.status||'Planning' : 'Planning';
+  document.getElementById('projectModalBackdrop').classList.add('open');
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+function selectedAssignee(selectId){
+  const sel = document.getElementById(selectId);
+  const opt = sel.selectedOptions[0];
+  if(!opt || !opt.value) return { username: '', fullname: '' };
+  return { username: opt.value, fullname: opt.dataset.fullname || '' };
+}
+
+async function saveProject(){
+  const id = document.getElementById('pm-id').value;
+  const pmAssignee = selectedAssignee('pm-pm-select');
+  const engAssignee = selectedAssignee('pm-eng-select');
+  const payload = {
+    name: document.getElementById('pm-name').value.trim(),
+    client_name: document.getElementById('pm-client').value.trim(),
+    capacity: document.getElementById('pm-capacity').value.trim(),
+    location: document.getElementById('pm-location').value.trim(),
+    project_manager: pmAssignee.fullname,
+    site_engineer: engAssignee.fullname,
+    pm_username: pmAssignee.username,
+    engineer_username: engAssignee.username,
+    start_date: document.getElementById('pm-start').value,
+    expected_completion: document.getElementById('pm-end').value,
+    engineers_count: parseInt(document.getElementById('pm-engcount').value)||0,
+    labour_count: parseInt(document.getElementById('pm-labcount').value)||0,
+    progress_percent: parseFloat(document.getElementById('pm-progress').value)||0,
+    status: document.getElementById('pm-status').value
+  };
+  if(!payload.name){ toast('Project name is required','error'); return; }
+  try{
+    if(id){ await api('/api/projects/'+id, {method:'PUT', body: JSON.stringify(payload)}); }
+    else{ await api('/api/projects', {method:'POST', body: JSON.stringify(payload)}); }
+    closeModal('projectModalBackdrop');
+    toast('Project saved','success');
+    loadProjects();
+    if(id && CURRENT_PROJECT && CURRENT_PROJECT.id==id) openProject(id);
+  }catch(e){ toast(e.message,'error'); }
+}
+
+/* ---------------- project detail ---------------- */
+async function openProject(id){
+  try{
+    CURRENT_PROJECT = await api('/api/projects/'+id);
+  }catch(e){ toast(e.message,'error'); return; }
+  goToView('project');
+  renderProjectHeader();
+  setProjectTab('overview');
+}
+
+function renderProjectHeader(){
+  const p = CURRENT_PROJECT;
+  document.getElementById('pdTitle').textContent = p.name;
+  document.getElementById('pdSub').textContent = (p.client_name||'—') + ' · ' + (p.location||'—');
+}
+
+function setProjectTab(tab){
+  document.querySelectorAll('.tabs button[data-ptab]').forEach(b=>b.classList.toggle('active', b.dataset.ptab===tab));
+  document.querySelectorAll('.ptab-view').forEach(v=>v.style.display='none');
+  document.getElementById('ptab-'+tab).style.display='block';
+  if(tab==='overview') renderOverviewTab();
+  if(tab==='materials') renderMaterialsTab();
+  if(tab==='history') renderHistoryTab();
+}
+
+function canManage(){ return ME.role==='admin' || ME.role==='pm'; }
+function canLogForCurrentProject(){
+  if(ME.role==='admin'||ME.role==='pm') return true;
+  if(ME.role==='engineer') return CURRENT_PROJECT && CURRENT_PROJECT.engineer_username===ME.username;
+  return false;
+}
+
+function renderOverviewTab(){
+  const p = CURRENT_PROJECT;
+  const el = document.getElementById('ptab-overview');
+  const statusClass = 'status-'+(p.status||'Planning').replace(/\s/g,'');
+  el.innerHTML = `
+    <div class="readout-grid">
+      <div class="readout"><div class="r-label">Status</div><div class="r-value"><span class="status-chip ${statusClass}">${escapeHtml(p.status)}</span></div></div>
+      <div class="readout"><div class="r-label">Progress</div><div class="r-value">${(p.progress_percent||0).toFixed(0)}%</div></div>
+      <div class="readout"><div class="r-label">Capacity</div><div class="r-value">${escapeHtml(p.capacity||'—')}</div></div>
+      <div class="readout"><div class="r-label">Location</div><div class="r-value">${escapeHtml(p.location||'—')}</div></div>
+      <div class="readout"><div class="r-label">Project Manager</div><div class="r-value">${escapeHtml(p.project_manager||'—')}</div></div>
+      <div class="readout"><div class="r-label">Site Engineer</div><div class="r-value">${escapeHtml(p.site_engineer||'—')}</div></div>
+      <div class="readout"><div class="r-label">Start Date</div><div class="r-value">${escapeHtml(p.start_date||'—')}</div></div>
+      <div class="readout"><div class="r-label">Expected Completion</div><div class="r-value">${escapeHtml(p.expected_completion||'—')}</div></div>
+      <div class="readout"><div class="r-label">Engineers on Site</div><div class="r-value">${p.engineers_count||0}</div></div>
+      <div class="readout"><div class="r-label">Labour on Site</div><div class="r-value">${p.labour_count||0}</div></div>
+    </div>
+    <div class="card">
+      <h3>Last Update</h3>
+      <div style="font-size:13px;color:var(--muted)">${fmtDateTime(p.last_site_update)} ${p.last_updated_by ? '— by '+escapeHtml(p.last_updated_by) : ''}</div>
+    </div>
+    ${canManage() ? `<button class="btn btn-primary" onclick='openProjectModal(${JSON.stringify(p)})'>Edit Project Details</button>` : ''}
+  `;
+}
+
+async function renderMaterialsTab(){
+  const el = document.getElementById('ptab-materials');
+  el.innerHTML = '<div class="loading">Loading materials…</div>';
+  try{
+    CURRENT_MATERIALS = await api('/api/projects/'+CURRENT_PROJECT.id+'/materials');
+  }catch(e){ el.innerHTML = '<div class="empty-state">'+escapeHtml(e.message)+'</div>'; return; }
+
+  const addBtn = canManage() ? `<button class="btn btn-primary btn-sm" onclick="openMaterialModal()">+ Add material</button>` : '';
+  const reportBtns = `<button class="btn btn-ghost btn-sm" onclick="printMaterialReport()">🖨 Print</button>
+    <button class="btn btn-ghost btn-sm" onclick="downloadMaterialCsv()">⬇ CSV</button>`;
+  if(CURRENT_MATERIALS.length===0){
+    el.innerHTML = `<div class="section-title">Materials <span style="display:flex;gap:8px;">${addBtn}</span></div><div class="empty-state">No materials tracked yet.</div>`;
+    return;
+  }
+  const rows = CURRENT_MATERIALS.map(m=>{
+    const remaining = m.remaining_quantity;
+    const low = m.planned_quantity>0 && remaining/m.planned_quantity < 0.15;
+    return `<div class="mat-row">
+      <div>
+        <div class="mat-name">${escapeHtml(m.name)}</div>
+        <div class="mat-sub">Planned: ${m.planned_quantity} ${escapeHtml(m.unit)}</div>
+      </div>
+      <div class="mat-right">
+        <div class="mat-remaining ${low?'low':''}">${remaining.toFixed(2)} ${escapeHtml(m.unit)}</div>
+        <div class="mat-used">used ${m.total_used.toFixed(2)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin:-4px 0 10px;">
+      ${canLogForCurrentProject() ? `<button class="btn btn-primary btn-sm" onclick='openUsageModal(${JSON.stringify(m)})'>+ Log today's usage</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="viewMaterialHistory(${m.id}, '${escapeHtml(m.name).replace(/'/g,"\\'")}')">History</button>
+      ${canManage() ? `<button class="btn btn-danger btn-sm" onclick="deleteMaterial(${m.id})">Remove</button>` : ''}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="section-title">Materials <span style="display:flex;gap:8px;">${addBtn}${reportBtns}</span></div><div class="card">${rows}</div>`;
+}
+
+function downloadMaterialCsv(){
+  const url = '/api/projects/'+CURRENT_PROJECT.id+'/report.csv?token='+encodeURIComponent(TOKEN);
+  window.location.href = url;
+}
+
+async function printMaterialReport(){
+  let usage = [];
+  try{ usage = await api('/api/projects/'+CURRENT_PROJECT.id+'/usage?limit=2000'); }catch(e){}
+  const p = CURRENT_PROJECT;
+  const matRows = CURRENT_MATERIALS.map(m => `<tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.unit)}</td><td>${m.planned_quantity}</td><td>${m.total_used.toFixed(2)}</td><td>${m.remaining_quantity.toFixed(2)}</td></tr>`).join('');
+  const usageRows = usage.map(u => `<tr><td>${escapeHtml(u.usage_date)}</td><td>${escapeHtml(u.material_name||'')}</td><td>${u.quantity_used} ${escapeHtml(u.unit||'')}</td><td>${escapeHtml(u.remarks||'')}</td><td>${escapeHtml(u.logged_by||'')}</td></tr>`).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>Material Report — ${escapeHtml(p.name)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:24px;color:#111;}
+      h1{font-size:20px;margin-bottom:2px;}
+      .sub{color:#555;font-size:13px;margin-bottom:18px;}
+      h2{font-size:14px;margin:22px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;}
+      th{background:#f0f0f0;}
+      @media print{ button{display:none;} }
+    </style></head>
+    <body>
+      <h1>${escapeHtml(p.name)}</h1>
+      <div class="sub">${escapeHtml(p.client_name||'')} · ${escapeHtml(p.location||'')} · Generated ${new Date().toLocaleString()}</div>
+      <h2>Material Summary</h2>
+      <table><thead><tr><th>Material</th><th>Unit</th><th>Planned</th><th>Used</th><th>Remaining</th></tr></thead><tbody>${matRows}</tbody></table>
+      <h2>Daily Usage Log</h2>
+      <table><thead><tr><th>Date</th><th>Material</th><th>Qty Used</th><th>Remarks</th><th>Logged By</th></tr></thead><tbody>${usageRows}</tbody></table>
+      <script>window.onload = () => window.print();</script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
+async function deleteMaterial(id){
+  if(!confirm('Remove this material and its usage history?')) return;
+  try{
+    await api('/api/projects/'+CURRENT_PROJECT.id+'/materials/'+id, {method:'DELETE'});
+    toast('Material removed','success');
+    renderMaterialsTab();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+function openMaterialModal(){
+  document.getElementById('mm-name').value='';
+  document.getElementById('mm-unit').value='';
+  document.getElementById('mm-planned').value=0;
+  document.getElementById('materialModalBackdrop').classList.add('open');
+}
+async function saveMaterial(){
+  const name = document.getElementById('mm-name').value.trim();
+  const unit = document.getElementById('mm-unit').value.trim();
+  const planned_quantity = parseFloat(document.getElementById('mm-planned').value)||0;
+  if(!name || !unit){ toast('Name and unit are required','error'); return; }
+  try{
+    await api('/api/projects/'+CURRENT_PROJECT.id+'/materials', {method:'POST', body: JSON.stringify({name, unit, planned_quantity})});
+    closeModal('materialModalBackdrop');
+    toast('Material added','success');
+    renderMaterialsTab();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+function openUsageModal(material){
+  ACTIVE_MATERIAL_FOR_USAGE = material;
+  document.getElementById('usageModalTitle').textContent = 'Record Usage — '+material.name;
+  document.getElementById('um-date').value = todayStr();
+  document.getElementById('um-qty').value = '';
+  document.getElementById('um-remarks').value = '';
+  document.getElementById('usageModalBackdrop').classList.add('open');
+}
+async function saveUsage(){
+  const qty = parseFloat(document.getElementById('um-qty').value);
+  const usage_date = document.getElementById('um-date').value || todayStr();
+  const remarks = document.getElementById('um-remarks').value.trim();
+  if(isNaN(qty) || qty < 0){ toast('Enter a valid quantity','error'); return; }
+  try{
+    await api('/api/projects/'+CURRENT_PROJECT.id+'/materials/'+ACTIVE_MATERIAL_FOR_USAGE.id+'/usage', {
+      method:'POST', body: JSON.stringify({ quantity_used: qty, usage_date, remarks })
+    });
+    closeModal('usageModalBackdrop');
+    toast('Usage recorded','success');
+    renderMaterialsTab();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+async function viewMaterialHistory(materialId, materialName){
+  setProjectTab('history');
+  const el = document.getElementById('ptab-history');
+  el.innerHTML = '<div class="loading">Loading history…</div>';
+  try{
+    const rows = await api('/api/projects/'+CURRENT_PROJECT.id+'/materials/'+materialId+'/usage');
+    el.innerHTML = `<div class="section-title">Usage History — ${escapeHtml(materialName)}</div>` + renderUsageTable(rows, true);
+  }catch(e){ el.innerHTML = '<div class="empty-state">'+escapeHtml(e.message)+'</div>'; }
+}
+
+async function renderHistoryTab(){
+  const el = document.getElementById('ptab-history');
+  el.innerHTML = '<div class="loading">Loading usage log…</div>';
+  try{
+    const rows = await api('/api/projects/'+CURRENT_PROJECT.id+'/usage');
+    el.innerHTML = `<div class="section-title">All Material Usage — by Date</div>` + renderUsageTable(rows, false);
+  }catch(e){ el.innerHTML = '<div class="empty-state">'+escapeHtml(e.message)+'</div>'; }
+}
+
+function renderUsageTable(rows, singleMaterial){
+  if(!rows || rows.length===0) return '<div class="empty-state">No usage recorded yet.</div>';
+  const header = singleMaterial
+    ? '<tr><th>Date</th><th>Qty Used</th><th>Remarks</th><th>Logged By</th></tr>'
+    : '<tr><th>Date</th><th>Material</th><th>Qty Used</th><th>Logged By</th></tr>';
+  const body = rows.map(r=>{
+    if(singleMaterial){
+      return `<tr><td>${escapeHtml(r.usage_date)}</td><td>${r.quantity_used}</td><td>${escapeHtml(r.remarks||'—')}</td><td>${escapeHtml(r.logged_by||'—')}</td></tr>`;
+    }
+    return `<tr><td>${escapeHtml(r.usage_date)}</td><td>${escapeHtml(r.material_name||'—')}</td><td>${r.quantity_used} ${escapeHtml(r.unit||'')}</td><td>${escapeHtml(r.logged_by||'—')}</td></tr>`;
+  }).join('');
+  return `<div class="card" style="overflow-x:auto;"><table class="usage-table"><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+/* ---------------- team (admin) ---------------- */
+async function loadTeam(){
+  const el = document.getElementById('teamList');
+  el.innerHTML = '<div class="loading">Loading…</div>';
+  try{
+    const users = await api('/api/users');
+    if(users.length===0){ el.innerHTML = '<div class="empty-state">No users yet.</div>'; return; }
+    el.innerHTML = '<div class="card">' + users.map(u=>`
+      <div class="mat-row">
+        <div>
+          <div class="mat-name">${escapeHtml(u.full_name)}</div>
+          <div class="mat-sub">@${escapeHtml(u.username)}</div>
+        </div>
+        <span class="role-badge">${roleLabel(u.role)}</span>
+      </div>
+    `).join('') + '</div>';
+  }catch(e){ el.innerHTML = '<div class="empty-state">'+escapeHtml(e.message)+'</div>'; }
+}
+
+function openUserModal(){
+  document.getElementById('um2-fullname').value='';
+  document.getElementById('um2-username').value='';
+  document.getElementById('um2-password').value='';
+  document.getElementById('um2-role').value='engineer';
+  document.getElementById('userModalBackdrop').classList.add('open');
+}
+async function saveUser(){
+  const full_name = document.getElementById('um2-fullname').value.trim();
+  const username = document.getElementById('um2-username').value.trim();
+  const password = document.getElementById('um2-password').value;
+  const role = document.getElementById('um2-role').value;
+  if(!full_name || !username || !password){ toast('All fields are required','error'); return; }
+  try{
+    await api('/api/users', {method:'POST', body: JSON.stringify({full_name, username, password, role})});
+    closeModal('userModalBackdrop');
+    toast('User created','success');
+    loadTeam();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+/* ---------------- init ---------------- */
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+tryResumeSession();
+</script>
+</body>
+</html>
