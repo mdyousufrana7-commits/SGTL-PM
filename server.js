@@ -118,9 +118,11 @@ const server = http.createServer(async (req, res) => {
     const user = requireAuth(req);
     if (p.startsWith('/api/') && !user) return json(res, 401, { error: 'Please log in' });
 
-    // ---------- users (admin only, for assigning engineers/PMs) ----------
+    // ---------- users ----------
+    // Admin and PM can view the user list (needed for the Engineer/PM assignment
+    // dropdown when creating or editing a project). Only admin can create users.
     if (p === '/api/users' && method === 'GET') {
-      if (!canDeleteAnything(user)) return json(res, 403, { error: 'Admin only' });
+      if (!canManageProjects(user)) return json(res, 403, { error: 'Admin or PM only' });
       return json(res, 200, db.listUsers());
     }
     if (p === '/api/users' && method === 'POST') {
